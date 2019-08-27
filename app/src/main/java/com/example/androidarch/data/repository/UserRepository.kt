@@ -1,38 +1,33 @@
 package com.example.androidarch.data.repository
 
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
+import com.example.androidarch.data.db.AppDatabase
+import com.example.androidarch.data.db.entities.User
 import com.example.androidarch.data.network.MyApi
-import okhttp3.ResponseBody
-import retrofit2.Call
-import retrofit2.Callback
+import com.example.androidarch.data.network.SafeApiRequest
+import com.example.androidarch.data.network.responses.AuthResponse
 import retrofit2.Response
 
 
-class UserRepository {
+class UserRepository(
+    private val api: MyApi,
+    private val db: AppDatabase
 
-    fun userLogin(email:String, password:String): LiveData<String>{
+): SafeApiRequest() {
 
-        val loginResponse = MutableLiveData<String>()
+    suspend fun userLogin(email:String, password:String): AuthResponse{
 
-        MyApi().userLogin(email, password)
-            .enqueue(object :Callback<ResponseBody>{
-                override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-
-                    loginResponse.value = t.message
-                }
-
-                override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
-
-                    if(response.isSuccessful){
-                        loginResponse.value = response.body()?.string()
-                    }else{
-                        loginResponse.value = response.errorBody()?.string()
-                    }
-                }
-
-            })
-        return loginResponse
-
+        return apiRequest{api.userLogin(email, password)}
     }
+
+    suspend fun userSignUp(name:String, email:String, password:String): AuthResponse{
+
+        return apiRequest{api.userSignUp(name, email, password)}
+    }
+
+
+    suspend fun safeUser(user: User) = db.getUserDao().updateOrInsert(user)
+
+    fun getUser() = db.getUserDao().getUser()
+
+
 }
